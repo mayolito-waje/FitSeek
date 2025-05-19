@@ -5,9 +5,7 @@ using Server.Models;
 
 namespace Server.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-public class UsersController(DataContext context) : ControllerBase
+public class UsersController(DataContext context) : ControllerProvider
 {
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Users>>> GetUsers()

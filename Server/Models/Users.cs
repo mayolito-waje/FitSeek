@@ -8,4 +8,6 @@ public class Users
     public int Age { get; set; }
     public float HeightCM { get; set; }
     public float WeightKG { get; set; }
+    public required byte[] Password { get; set; }
+    public required byte[] PasswordSalt { get; set; }
 }
