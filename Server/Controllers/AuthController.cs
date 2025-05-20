@@ -3,15 +3,16 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Server.Data;
 using Server.DTOs;
+using Server.Interfaces;
 using Server.Models;
 using Server.Utils;
 
 namespace Server.Controllers;
 
-public class AuthController(DataContext context) : ControllerProvider
+public class AuthController(DataContext context, ITokenService tokenService) : ControllerProvider
 {
     [HttpPost("register")]
-    public async Task<ActionResult<Users>> Register(UserRegisterDto userRegisterDto)
+    public async Task<ActionResult<UserDto>> Register(UserRegisterDto userRegisterDto)
     {
         if (await UserExists(userRegisterDto.Username)) return BadRequest("Username is taken.");
 
@@ -22,7 +23,7 @@ public class AuthController(DataContext context) : ControllerProvider
         byte[] salt = RandomNumberGenerator.GetBytes(128 / 8);
         byte[] passwordHash = PasswordHasher.Hash(userRegisterDto.Password, salt);
 
-        var registeredUser = new Users
+        var registeredUser = new User
         {
             Username = userRegisterDto.Username,
             Age = userRegisterDto.Age,
@@ -36,11 +37,15 @@ public class AuthController(DataContext context) : ControllerProvider
         context.Users.Add(registeredUser);
         await context.SaveChangesAsync();
 
-        return registeredUser;
+        return new UserDto
+        {
+            Username = registeredUser.Username,
+            Token = tokenService.GenerateToken(registeredUser)
+        };
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<Users>> Login(LoginDto loginDto)
+    public async Task<ActionResult<UserDto>> Login(LoginDto loginDto)
     {
         var user = await context.Users.FirstOrDefaultAsync(x => x.Username == loginDto.Username);
 
@@ -55,7 +60,11 @@ public class AuthController(DataContext context) : ControllerProvider
                 return Unauthorized("Password doesn't match.");
         }
 
-        return user;
+        return new UserDto
+        {
+            Username = user.Username,
+            Token = tokenService.GenerateToken(user)
+        };
     }
 
     private async Task<bool> UserExists(string username)
